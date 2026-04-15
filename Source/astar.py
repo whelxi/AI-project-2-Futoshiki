@@ -7,7 +7,7 @@ class AStarNode:
         self.g_cost = g_cost
         self.game = game
         if h_cost is None:
-            self.h_cost = self.calc_heuristic_1()
+           self.h_cost = self.calc_heuristic_1() + self.calc_heuristic_2()
         else:
             self.h_cost = h_cost
         self.f_cost = self.g_cost + self.h_cost
