@@ -61,8 +61,8 @@ def read_input(path):
     n = int(file.readline())
 
     grid = [[0 for _ in range(n)] for _ in range(n)]
-    horizontal = [[0 for _ in range(n)] for _ in range(n)]
-    vertical = [[0 for _ in range(n)] for _ in range(n)]
+    horizontal = [[0 for _ in range(n - 1)] for _ in range(n)]
+    vertical = [[0 for _ in range(n)] for _ in range(n - 1)]
 
     d = 0
     for line in file.readlines(): 

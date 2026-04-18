@@ -30,10 +30,14 @@ class AStarNode:
         
     def is_goal(self):
         return self.h_cost == 0
-
+    
     def __lt__(self, other):
+        # Cơ chế Tie-breaker (Phá vỡ thế hòa)
+        if self.f_cost == other.f_cost:
+            # Nếu điểm f bằng nhau, ép thuật toán ưu tiên Node đi sâu hơn (g_cost lớn hơn)
+            return self.g_cost > other.g_cost
         return self.f_cost < other.f_cost
-        
+    
 def  is_valid(grid, r, c, val, game):
     n = game.n
     
