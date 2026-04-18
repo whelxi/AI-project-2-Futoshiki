@@ -52,9 +52,12 @@ class FutoshikiFOLAgent:
         return True
 
     def _apply_inequality_axiom(self, r1, c1, r2, c2, is_less_than):
-        changed = False
         dom1, dom2 = self.domains[r1][c1], self.domains[r2][c2]
         
+        if not dom1 or not dom2:
+            return False
+            
+        changed = False
         if is_less_than:
             new_d1 = {v for v in dom1 if v < max(dom2)}
             new_d2 = {v for v in dom2 if v > min(dom1)}
@@ -96,14 +99,24 @@ class FutoshikiFOLAgent:
             return True 
 
         r, c = query
+        
+        saved_domains = [[set(d) for d in row] for row in self.domains]
+        saved_grid = [[self.game.grid[i][j] for j in range(self.n)] for i in range(self.n)]
+
         for val in sorted(list(self.domains[r][c])):
             if self._is_consistent(r, c, val):
                 self.game.grid[r][c] = val
+                self.domains[r][c] = {val}
                 
-                if self.backward_chaining():
-                    return True
+                if self.forward_chaining():
+                    if self.backward_chaining():
+                        return True
                 
-                self.game.grid[r][c] = 0
+                self.domains = [[set(d) for d in row] for row in saved_domains]
+                for i in range(self.n):
+                    for j in range(self.n):
+                        self.game.grid[i][j] = saved_grid[i][j]
+
         return False
 
     def _get_unassigned_goal(self):
@@ -134,7 +147,7 @@ class FutoshikiFOLAgent:
 def main():
     input_dir = 'Inputs'
     output_dir = 'Outputs'
-    csv_filename = 'Tracking-Logic.csv'
+    csv_filename = 'Result.csv'
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

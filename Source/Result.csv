@@ -1,0 +1,13 @@
+File Name,Time (seconds),Memory Peak (MB),Status
+input-01.txt,0.0007,0.0124,Success
+input-02.txt,0.002,0.0197,Success
+input-03.txt,0.0017,0.0432,Success
+input-04.txt,0.0032,0.0692,Success
+input-05.txt,0.011,0.1874,Success
+input-06.txt,0.0064,0.1923,Success
+input-07.txt,0.0098,0.355,Success
+input-08.txt,0.0115,0.4375,Success
+input-09.txt,0.026,1.2499,Success
+input-10.txt,0.0379,1.4734,Success
+input-11.txt,0.0009,0.0091,Success
+input-12.txt,82.9079,0.8996,Success
