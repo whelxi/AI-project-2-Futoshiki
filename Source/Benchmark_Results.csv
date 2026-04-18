@@ -1,0 +1,8 @@
+File Name,Algorithm,Time (seconds),Memory Peak (MB),Status
+input-01.txt,A-Star,0.0087,0.1382,Success
+input-01.txt,Backtracking,0.0014,0.1355,Success
+input-01.txt,Brute Force,187.2174,0.1355,Success
+input-01.txt,Forward-Backward Chaining,0.0028,0.1373,Success
+input-01.txt,SAT Optimized,0.0016,0.1355,Failed
+input-02.txt,A-Star,0.0267,0.1355,Success
+input-02.txt,Backtracking,0.0009,0.1355,Success
