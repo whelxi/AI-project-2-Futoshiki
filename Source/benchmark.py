@@ -10,7 +10,6 @@ import game as game_module
 # Import các thuật toán
 from a_star import solve_futoshiki_astar
 from backtracking import solve_futoshiki as solve_backtracking
-from bruteforce import solve_futoshiki_bf
 from forward_backward_chaining import Agent as FBAgent
 from sat_optimized import solve_futoshiki_optimized
 
@@ -25,13 +24,6 @@ def run_astar(in_path, out_path):
 def run_backtracking(in_path, out_path):
     game = game_module.read_input(in_path)
     if solve_backtracking(game):
-        game_module.print_output(out_path, game)
-        return True
-    return False
-
-def run_bruteforce(in_path, out_path):
-    game = game_module.read_input(in_path)
-    if solve_futoshiki_bf(game):
         game_module.print_output(out_path, game)
         return True
     return False
@@ -68,11 +60,10 @@ def main():
         print(f"Không tìm thấy file input nào trong thư mục '{input_dir}'.")
         return
 
-    # Khai báo danh sách các thuật toán cần benchmark
+    # Khai báo danh sách các thuật toán cần benchmark (Đã bỏ Brute Force)
     algorithms = {
         "A-Star": run_astar,
         "Backtracking": run_backtracking,
-        "Brute Force": run_bruteforce,
         "Forward-Backward Chaining": run_fbc,
         "SAT Optimized": run_sat
     }
