@@ -104,6 +104,7 @@ def solve_futoshiki_optimized(input_file: str, output_file: str) -> dict:
             r = (lit_zero_indexed // (n * n))
             solved_grid[r][c] = v
 
+    game.grid = solved_grid
     print_output(output_file, game)
     
     return {"clauses": len(clauses), "inferences": inferences}
