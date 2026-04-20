@@ -1,0 +1,4 @@
+pysat
+matplotlib
+seaborn
+streamlit

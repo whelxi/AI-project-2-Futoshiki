@@ -1,0 +1,7 @@
+Readme
+How to run?
+cd Source
+python -m streamlit run gui.py
+
+Run benchmark.py to test and export into csv
+Run plot_benchmark.py to draw charts from that csv
