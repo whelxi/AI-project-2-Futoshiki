@@ -6,147 +6,153 @@ import numpy as np
 
 def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     if not os.path.exists(csv_filename):
-        print(f"Không tìm thấy file '{csv_filename}'. Vui lòng chạy file benchmark.py trước để tạo dữ liệu.")
+        print(f"File '{csv_filename}' not found. Please run the benchmark script first to generate data.")
         return
 
-    # Đọc dữ liệu từ file CSV
+    # Read data from CSV
     df = pd.read_csv(csv_filename)
 
-    # Rút gọn tên Test Case
+    # DESIGN TOUCHPOINT 1: Clean X-axis data
+    # Simplify 'input-01.txt' to '1', '2'... for a cleaner X-axis
     if 'File Name' in df.columns:
         df['Test Case'] = df['File Name'].str.replace('input-', '', regex=False).str.replace('.txt', '', regex=False)
     else:
-        df['Test Case'] = df.index
+        df['Test Case'] = df.index.astype(str) # Backup if File Name column is missing
 
-    # =========================================================
-    # CẤU HÌNH DESIGN SYSTEM
-    # =========================================================
+    # Set modern, minimalist design style
     sns.set_theme(style="whitegrid", font_scale=1.1)
+    # Further customization: Remove top and right spines
     plt.rcParams['axes.spines.top'] = False
     plt.rcParams['axes.spines.right'] = False
-    plt.rcParams['font.family'] = 'sans-serif'
     
-    # Hệ màu phân cực
-    color_map = {
-        'SAT Optimized': '#10B981',             # Xanh ngọc
-        'A-Star': '#3B82F6',                    # Xanh dương
-        'Forward-Backward Chaining': '#F59E0B', # Vàng cam
-        'Backtracking': '#EF4444'               # Đỏ
-    }
-    
-    unique_algos = df['Algorithm'].unique()
-    palette = [color_map.get(algo, '#888888') for algo in unique_algos]
-
     output_dir = 'Charts'
     os.makedirs(output_dir, exist_ok=True)
 
-    print("Đang render biểu đồ...")
+    print("Generating Designer-standard charts...")
 
     # =========================================================
-    # 1. Biểu đồ cột: Thời gian chạy trung bình 
+    # 1. Bar Chart: Average Running Time
     # =========================================================
     plt.figure(figsize=(10, 6))
+    
+    # Calculate average time
     avg_time = df.groupby('Algorithm')['Time (seconds)'].mean().reset_index()
-    avg_time = avg_time.sort_values(by='Time (seconds)')
+    avg_time = avg_time.sort_values(by='Time (seconds)') # Sort fastest to slowest
     
-    ax1 = sns.barplot(data=avg_time, x='Algorithm', y='Time (seconds)', palette=palette, order=avg_time['Algorithm'])
+    ax1 = sns.barplot(data=avg_time, x='Algorithm', y='Time (seconds)', palette='crest')
     
+    # DESIGN TOUCHPOINT 2: Direct Data Labels
     for container in ax1.containers:
-        ax1.bar_label(container, fmt='%.3f s', padding=5, fontsize=11, fontweight='bold', color='#333')
+        ax1.bar_label(container, fmt='%.3f s', padding=5, fontsize=11, color='#333333')
 
-    plt.title('Thời Gian Chạy Trung Bình\n(Càng thấp càng tốt)', fontsize=16, fontweight='bold', pad=20, color='#1F2937')
-    plt.ylabel('Thời gian (giây)', fontsize=12, color='#4B5563')
-    plt.xlabel('') 
+    plt.title('Average Runtime (Lower is better)', fontsize=15, fontweight='bold', pad=20)
+    plt.ylabel('Time (seconds)', fontsize=12, color='#555555')
+    plt.xlabel('') # Remove 'Algorithm' as it's self-explanatory
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'Average_Time_Chart.png'), dpi=300, bbox_inches='tight')
     plt.close()
 
     # =========================================================
-    # 2. Biểu đồ cột: Bộ nhớ tiêu thụ (RAM) trung bình - CẬP NHẬT TRẦN 2MB
+    # 2. Bar Chart: Average Peak Memory
     # =========================================================
     plt.figure(figsize=(10, 6))
+    
     avg_mem = df.groupby('Algorithm')['Memory Peak (MB)'].mean().reset_index()
     avg_mem = avg_mem.sort_values(by='Memory Peak (MB)')
     
-    ax2 = sns.barplot(data=avg_mem, x='Algorithm', y='Memory Peak (MB)', palette=palette, order=avg_mem['Algorithm'])
+    ax2 = sns.barplot(data=avg_mem, x='Algorithm', y='Memory Peak (MB)', palette='flare')
     
-    MEM_MAX_LIMIT = 2.0
-    ax2.set_ylim(0, MEM_MAX_LIMIT + 0.3) # Dư ra một chút không gian phía trên để đặt Text
+    for container in ax2.containers:
+        ax2.bar_label(container, fmt='%.1f MB', padding=5, fontsize=11, color='#333333')
 
-    # Vẽ đường đứt nét giới hạn 2MB
-    plt.axhline(y=MEM_MAX_LIMIT, color='#9CA3AF', linestyle='--', linewidth=1.5, zorder=0)
-    plt.text(x=-0.4, y=MEM_MAX_LIMIT + 0.05, s='Ngưỡng hiển thị đồ thị (2 MB)', color='#6B7280', fontsize=9, fontstyle='italic')
-
-    # Xử lý Label thông minh cho các cột vượt quá 2MB
-    for i, p in enumerate(ax2.patches):
-        val = p.get_height()
-        algo_name = avg_mem.iloc[i]['Algorithm']
-        bar_color = color_map.get(algo_name, '#888888')
-
-        if val > MEM_MAX_LIMIT:
-            # Nếu vượt trần, ghim thẻ label ở mép trên đồ thị
-            ax2.text(p.get_x() + p.get_width()/2., MEM_MAX_LIMIT + 0.1, f'{val:.1f} MB', 
-                     fontsize=11, fontweight='bold', color='white', ha='center', va='bottom',
-                     bbox=dict(facecolor=bar_color, edgecolor='none', boxstyle='round,pad=0.3'))
-        else:
-            # Nếu dưới trần, hiển thị bình thường
-            ax2.text(p.get_x() + p.get_width()/2., val + 0.05, f'{val:.1f} MB', 
-                     fontsize=11, fontweight='bold', color='#333', ha='center', va='bottom')
-
-    plt.title('Bộ Nhớ Tiêu Thụ Đỉnh Trung Bình\n(Cắt ngọn ở mức 2MB để hiển thị chi tiết)', fontsize=16, fontweight='bold', pad=20, color='#1F2937')
-    plt.ylabel('Bộ nhớ (MB)', fontsize=12, color='#4B5563')
+    plt.title('Average Peak Memory Consumption', fontsize=15, fontweight='bold', pad=20)
+    plt.ylabel('Memory (MB)', fontsize=12, color='#555555')
     plt.xlabel('')
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'Average_Memory_Chart.png'), dpi=300, bbox_inches='tight')
     plt.close()
 
     # =========================================================
-    # 3. Biểu đồ đường: Biến động thời gian - CẬP NHẬT TRẦN 10s
+    # 3. Line Chart: Time Variation (Log Scale + 1h Timeout Note)
     # =========================================================
-    plt.figure(figsize=(12, 6.5))
+    plt.figure(figsize=(12, 6))
     
+    # Use distinct palette
     ax3 = sns.lineplot(data=df, x='Test Case', y='Time (seconds)', hue='Algorithm', 
-                       marker='o', markersize=8, linewidth=2.5, palette=palette, hue_order=unique_algos)
+                       marker='o', markersize=8, linewidth=2.5, palette='tab10')
     
-    ax3.get_legend().remove()
+    # --- LOG SCALE IMPLEMENTATION ---
+    ax3.set_yscale('log')
     
-    Y_MAX_LIMIT = 10  # Đã giảm từ 50s xuống 10s
-    ax3.set_ylim(-0.5, Y_MAX_LIMIT + 1)
+    # --- TẮT ĐƯỜNG KẺ LƯỚI ---
+    ax3.grid(False)
 
-    plt.axhline(y=Y_MAX_LIMIT, color='#9CA3AF', linestyle='--', linewidth=1.5, zorder=0)
-    plt.text(x=-0.2, y=Y_MAX_LIMIT + 0.2, s='Ngưỡng hiển thị đồ thị (10s)', color='#6B7280', fontsize=9, fontstyle='italic')
-
-    for algo in unique_algos:
-        algo_data = df[df['Algorithm'] == algo].reset_index(drop=True)
-        if algo_data.empty: continue
-            
-        color = ax3.lines[list(unique_algos).index(algo)].get_color()
-        
-        for idx, row in algo_data.iterrows():
-            if row['Time (seconds)'] > Y_MAX_LIMIT:
-                plt.text(x=idx, y=Y_MAX_LIMIT + 0.2, s=f"{row['Time (seconds)']:.0f}s", 
-                         color='white', fontweight='bold', fontsize=9, ha='center', va='bottom',
-                         bbox=dict(facecolor=color, edgecolor='none', boxstyle='round,pad=0.3'))
-
-        last_x_idx = len(algo_data) - 1
-        last_y_val = algo_data['Time (seconds)'].iloc[-1]
-        
-        display_y = min(last_y_val, Y_MAX_LIMIT)
-        
-        plt.text(x=last_x_idx + 0.15, y=display_y, s=algo, 
-                 color=color, fontweight='bold', fontsize=11, va='center')
-
-    plt.xlim(-0.5, len(df['Test Case'].unique()) + 1.5)
-    plt.title('Biến Động Thời Gian Chạy Qua Các Test Case\n(Cắt ngọn ở mức 10s để hiển thị chi tiết)', 
-              fontsize=16, fontweight='bold', pad=20, color='#1F2937')
-    plt.ylabel('Thời gian (giây)', fontsize=12, color='#4B5563')
-    plt.xlabel('Test Case', fontsize=12, color='#4B5563')
+    # --- TẠO BẢNG CHÚ THÍCH (LEGEND) TÁCH BIỆT ---
+    # Đặt Legend ra bên ngoài đồ thị để không che khuất đường biểu diễn và các mốc timeout
+    plt.legend(title='Algorithm', bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False)
     
+    x_categories = list(df['Test Case'].unique())
+
+    # --- HIGHLIGHT TIMEOUT (>= 1 HOUR) ---
+    # Find all test cases that took 3600 seconds or more
+    timeouts = df[df['Time (seconds)'] >= 3600]
+    for _, row in timeouts.iterrows():
+        try:
+            # Map the test case string to its index on the X-axis for plotting
+            x_idx = x_categories.index(row['Test Case'])
+            # Add a red 'X' marker and bold text annotation
+            plt.scatter(x_idx, row['Time (seconds)'], color='red', marker='X', s=120, zorder=5)
+            plt.annotate('TIMEOUT\n(1h+)', 
+                         xy=(x_idx, row['Time (seconds)']),
+                         xytext=(0, 15), textcoords='offset points',
+                         color='red', fontweight='bold', ha='center', fontsize=10)
+        except ValueError:
+            pass
+
+    plt.title('Runtime Variation Across Test Cases (Log Scale)', fontsize=15, fontweight='bold', pad=20)
+    plt.ylabel('Runtime (seconds, log scale)', fontsize=12, color='#555555')
+    plt.xlabel('Test Case', fontsize=12, color='#555555')
+    
+    # Dùng bbox_inches='tight' để đảm bảo legend bên ngoài không bị cắt mất khi lưu ảnh
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'Time_Per_Testcase_Chart.png'), dpi=300, bbox_inches='tight')
     plt.close()
+    
+    # =========================================================
+    # 4. Stacked Bar Chart: Success Rate
+    # =========================================================
+    plt.figure(figsize=(10, 6))
+    
+    if 'Status' in df.columns:
+        status_counts = df.groupby(['Algorithm', 'Status']).size().unstack(fill_value=0)
+        
+        # DESIGN TOUCHPOINT 4: Meaningful color mapping
+        color_map = []
+        for col in status_counts.columns:
+            if str(col).lower() in ['success', 'passed', 'ok']:
+                color_map.append('#2ecc71') # Green
+            elif str(col).lower() in ['timeout']:
+                color_map.append('#f1c40f') # Yellow
+            else:
+                color_map.append('#e74c3c') # Red
 
-    print(f"✨ Hoàn tất! Các biểu đồ đã được lưu tại '{output_dir}/'")
+        if not color_map: # Fallback
+            color_map = sns.color_palette("Set2", len(status_counts.columns))
+
+        ax4 = status_counts.plot(kind='bar', stacked=True, color=color_map, figsize=(10, 6), edgecolor='white')
+        
+        plt.title('Algorithm Success Rate', fontsize=15, fontweight='bold', pad=20)
+        plt.ylabel('Number of Test Cases', fontsize=12, color='#555555')
+        plt.xlabel('')
+        plt.xticks(rotation=0) 
+        
+        plt.legend(title='Status', frameon=False, bbox_to_anchor=(1.05, 1), loc='upper left')
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'Success_Rate_Chart.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+
+    print(f"✨ Done! 'Designer-standard' charts have been saved to '{output_dir}/'")
 
 if __name__ == '__main__':
     plot_benchmark_results()
