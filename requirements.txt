@@ -1,3 +1,4 @@
 pysat
 matplotlib
 seaborn
+streamlit

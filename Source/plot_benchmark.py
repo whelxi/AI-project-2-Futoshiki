@@ -73,7 +73,7 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     plt.close()
 
     # =========================================================
-    # 3. Line Chart: Time Variation (Log Scale + 1h Timeout Note)
+    # 3. Line Chart: Time Variation (Log Scale + 5m Timeout Note)
     # =========================================================
     plt.figure(figsize=(12, 6))
     
@@ -84,25 +84,24 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     # --- LOG SCALE IMPLEMENTATION ---
     ax3.set_yscale('log')
     
-    # --- TẮT ĐƯỜNG KẺ LƯỚI ---
+    # --- TURN OFF GRID ---
     ax3.grid(False)
 
-    # --- TẠO BẢNG CHÚ THÍCH (LEGEND) TÁCH BIỆT ---
-    # Đặt Legend ra bên ngoài đồ thị để không che khuất đường biểu diễn và các mốc timeout
+    # --- EXTERNAL LEGEND ---
     plt.legend(title='Algorithm', bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False)
     
     x_categories = list(df['Test Case'].unique())
 
-    # --- HIGHLIGHT TIMEOUT (>= 1 HOUR) ---
-    # Find all test cases that took 3600 seconds or more
-    timeouts = df[df['Time (seconds)'] >= 3600]
+    # --- HIGHLIGHT TIMEOUT (>= 5 MINUTES) ---
+    # Find all test cases that took 300 seconds or more
+    timeouts = df[df['Time (seconds)'] >= 300]
     for _, row in timeouts.iterrows():
         try:
             # Map the test case string to its index on the X-axis for plotting
             x_idx = x_categories.index(row['Test Case'])
             # Add a red 'X' marker and bold text annotation
             plt.scatter(x_idx, row['Time (seconds)'], color='red', marker='X', s=120, zorder=5)
-            plt.annotate('TIMEOUT\n(1h+)', 
+            plt.annotate('TIMEOUT\n(5m+)', 
                          xy=(x_idx, row['Time (seconds)']),
                          xytext=(0, 15), textcoords='offset points',
                          color='red', fontweight='bold', ha='center', fontsize=10)
@@ -113,7 +112,6 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     plt.ylabel('Runtime (seconds, log scale)', fontsize=12, color='#555555')
     plt.xlabel('Test Case', fontsize=12, color='#555555')
     
-    # Dùng bbox_inches='tight' để đảm bảo legend bên ngoài không bị cắt mất khi lưu ảnh
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'Time_Per_Testcase_Chart.png'), dpi=300, bbox_inches='tight')
     plt.close()
@@ -150,6 +148,27 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
         
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, 'Success_Rate_Chart.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+
+    # =========================================================
+    # 5. Bar Chart: Average Avg Memory
+    # =========================================================
+    plt.figure(figsize=(10, 6))
+    
+    if 'Memory Avg (MB)' in df.columns:
+        avg_avg_mem = df.groupby('Algorithm')['Memory Avg (MB)'].mean().reset_index()
+        avg_avg_mem = avg_avg_mem.sort_values(by='Memory Avg (MB)')
+        
+        ax5 = sns.barplot(data=avg_avg_mem, x='Algorithm', y='Memory Avg (MB)', palette='mako')
+        
+        for container in ax5.containers:
+            ax5.bar_label(container, fmt='%.4f MB', padding=5, fontsize=11, color='#333333')
+
+        plt.title('Average Average Memory Consumption', fontsize=15, fontweight='bold', pad=20)
+        plt.ylabel('Memory (MB)', fontsize=12, color='#555555')
+        plt.xlabel('')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'Average_Avg_Memory_Chart.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
     print(f"✨ Done! 'Designer-standard' charts have been saved to '{output_dir}/'")

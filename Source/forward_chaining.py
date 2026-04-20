@@ -32,11 +32,17 @@ class FutoshikiFOLAgent:
         R1, C1, R2, C2 = [self.T(n, True) for n in ["R1", "C1", "R2", "C2"]]
 
         # --- TẠO STATIC FACTS (Tri thức tĩnh) ---
-        # 1. Tri thức về sự khác biệt (Diff) dùng cho cả Tọa độ (0->N) và Giá trị (1->N)
-        for a in range(0, N + 1):
-            for b in range(0, N + 1):
+        # 1. DiffCoord cho Tọa độ (0 -> N-1)
+        for a in range(N):
+            for b in range(N):
                 if a != b:
-                    self.static_facts.append(self.P("Diff", [self.T(a), self.T(b)]))
+                    self.static_facts.append(self.P("DiffCoord", [self.T(a), self.T(b)]))
+        
+        # 1.5 DiffVal cho Giá trị (1 -> N)
+        for a in range(1, N + 1):
+            for b in range(1, N + 1):
+                if a != b:
+                    self.static_facts.append(self.P("DiffVal", [self.T(a), self.T(b)]))
         
         # 2. Tri thức về Toán học (Bất đẳng thức)
         for a in range(1, N + 1):
@@ -61,15 +67,15 @@ class FutoshikiFOLAgent:
                         self.static_facts.append(self.P("LessThanCell", [self.T(r+1), self.T(c), self.T(r), self.T(c)]))
 
         # --- TẠO CÁC LUẬT FOL (FOL RULES) ---
-        # Rule 1: Ô (R, C) đang là V1, mà V2 khác V1 => Ô đó không thể là V2
+        # Rule 1: Ô (R, C) đang là V1, mà V2 khác V1 (DiffVal) => Không thể là V2
         self.rules.append(Rule(self.P("NotVal", [R, C, V2]),
-                               [self.P("Val", [R, C, V1]), self.P("Diff", [V1, V2])]))
+                               [self.P("Val", [R, C, V1]), self.P("DiffVal", [V1, V2])]))
 
-        # Rule 2: Các ô cùng hàng, hoặc cùng cột không được trùng giá trị
+        # Rule 2: Cùng hàng / cột (DiffCoord) không được trùng giá trị
         self.rules.append(Rule(self.P("NotVal", [R2, C, V]),
-                               [self.P("Val", [R1, C, V]), self.P("Diff", [R1, R2])]))
+                               [self.P("Val", [R1, C, V]), self.P("DiffCoord", [R1, R2])]))
         self.rules.append(Rule(self.P("NotVal", [R, C2, V]),
-                               [self.P("Val", [R, C1, V]), self.P("Diff", [C1, C2])]))
+                               [self.P("Val", [R, C1, V]), self.P("DiffCoord", [C1, C2])]))
 
         # Rule 3: Ràng buộc lớn bé
         # Nếu ô1 < ô2, mà ô1 là V1, thì ô2 không thể chứa V2 sao cho V2 <= V1
@@ -83,14 +89,6 @@ class FutoshikiFOLAgent:
                                [self.P("LessThanCell", [R1, C1, R2, C2]),
                                 self.P("Val", [R2, C2, V2]),
                                 self.P("GreaterThanEq", [V1, V2])]))
-
-        # Rule 4: Domain Completion (Hoàn thành ô). Nếu ô (R, C) bị loại trừ N-1 giá trị thì nó mang giá trị còn lại
-        for v in range(1, N + 1):
-            premises = []
-            for v_other in range(1, N + 1):
-                if v != v_other:
-                    premises.append(self.P("NotVal", [R, C, self.T(v_other)]))
-            self.rules.append(Rule(self.P("Val", [R, C, self.T(v)]), premises))
 
     def match_premises(self, premises, known_facts, theta):
         """Đệ quy match một chuỗi các premises với tri thức đã biết (thông qua Unification)"""
@@ -131,6 +129,27 @@ class FutoshikiFOLAgent:
             elif fact.name == "NotVal":
                 opp = self.P("Val", fact.args)
                 if str(opp) in inferred_set: return False
+
+            # --- KIỂM TRA PROCEDURAL DOMAIN COMPLETION ---
+            # Xử lý nhanh gọn thay cho Rule 4 cồng kềnh
+            if fact.name == "NotVal":
+                r_name = fact.args[0].name
+                c_name = fact.args[1].name
+                
+                # Đếm xem ô này đã bị loại trừ bao nhiêu giá trị
+                not_vals = [f for f in known_facts.get("NotVal", []) 
+                            if f.args[0].name == r_name and f.args[1].name == c_name]
+                
+                if len(not_vals) == self.N - 1:
+                    excluded = {int(f.args[2].name) for f in not_vals}
+                    for v in range(1, self.N + 1):
+                        if v not in excluded:
+                            new_val_fact = self.P("Val", [self.T(r_name), self.T(c_name), self.T(v)])
+                            head_str = str(new_val_fact)
+                            if head_str not in inferred_set and head_str not in queued_set:
+                                queued_set.add(head_str)
+                                agenda.append(new_val_fact)
+                            break
 
             # --- Kích hoạt các luật FOL ---
             for rule in self.rules:
