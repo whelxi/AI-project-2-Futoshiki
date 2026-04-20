@@ -10,18 +10,15 @@ class GameInstance:
         self.constrained_cells = self._compute_constrained_cells()
     
     def _compute_constrained_cells(self):
-        """Tính toán và lưu tất cả các ô bị ràng buộc (có điều kiện <, >, ^, v)"""
         constrained_cells = set()
         n = self.n
         
-        # Quét các ràng buộc chiều ngang
         for i in range(n):
             for j in range(n - 1):
                 if self.horizontal[i][j] != 0:
                     constrained_cells.add((i, j))
                     constrained_cells.add((i, j + 1))
         
-        # Quét các ràng buộc chiều dọc
         for i in range(n - 1):
             for j in range(n):
                 if self.vertical[i][j] != 0:

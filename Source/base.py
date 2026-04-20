@@ -19,9 +19,6 @@ class Term:
     def __repr__(self):
         return self.name
 
-# ----------------------------------------------------------------------
-# Logical expressions
-# ----------------------------------------------------------------------
 class Expr:
     def to_cnf(self) -> 'Expr':
         return self.eliminate_implications().move_not_inward().distribute_or()
@@ -32,9 +29,6 @@ class Expr:
     def substitute(self, var_map): raise NotImplementedError
     def ground(self, domain): raise NotImplementedError
 
-# ----------------------------------------------------------------------
-# TruthValue – for built‑in predicates that evaluate to True/False
-# ----------------------------------------------------------------------
 class TruthValue(Expr):
     def __init__(self, value: bool):
         self.value = value
@@ -45,9 +39,6 @@ class TruthValue(Expr):
     def ground(self, domain): return self
     def __repr__(self): return "⊤" if self.value else "⊥"
 
-# ----------------------------------------------------------------------
-# Propositional connectives
-# ----------------------------------------------------------------------
 class BinaryOp(Expr):
     def __init__(self, left: Expr, right: Expr):
         self.left = left
@@ -123,9 +114,6 @@ class Implies(BinaryOp):
     def ground(self, domain):
         return Implies(self.left.ground(domain), self.right.ground(domain))
 
-# ----------------------------------------------------------------------
-# Predicate (atomic formula)
-# ----------------------------------------------------------------------
 class Predicate(Expr):
     def __init__(self, name: str, args: List[Term]):
         self.name = name
@@ -156,9 +144,6 @@ class Predicate(Expr):
     def __repr__(self):
         return f"{self.name}({','.join(map(str, self.args))})"
 
-# ----------------------------------------------------------------------
-# Quantifiers
-# ----------------------------------------------------------------------
 class Quantifier(Expr):
     def __init__(self, var_name: str, formula: Expr):
         self.var_name = var_name
@@ -176,7 +161,6 @@ class Quantifier(Expr):
 
 class Universal(Quantifier):
     def ground(self, domain):
-        # ∀x φ → ∧_{d∈domain} φ[x/d]
         instances = [self.formula.substitute({self.var_name: d}).ground(domain) for d in domain]
         result = instances[0]
         for inst in instances[1:]:
@@ -187,7 +171,6 @@ class Universal(Quantifier):
 
 class Existential(Quantifier):
     def ground(self, domain):
-        # ∃x φ → ∨_{d∈domain} φ[x/d]
         instances = [self.formula.substitute({self.var_name: d}).ground(domain) for d in domain]
         result = instances[0]
         for inst in instances[1:]:
@@ -198,7 +181,6 @@ class Existential(Quantifier):
 
 def build_fol_kb(n: int, given_facts: List[tuple], less_h: List[tuple], greater_h: List[tuple],
                  less_v: List[tuple], greater_v: List[tuple]) -> List[Expr]:
-    """Return a list of closed formulas (axioms + facts)."""
     kb = []
 
     def t(s: str, is_var=False): return Term(s, is_var)
@@ -207,12 +189,10 @@ def build_fol_kb(n: int, given_facts: List[tuple], less_h: List[tuple], greater_
     indices = [t(str(i)) for i in range(1, n+1)]
     values = [t(str(v)) for v in range(1, n+1)]
 
-    # 1. Every cell has at least one value
     for i in indices:
         for j in indices:
             kb.append(Existential("v", Predicate("Val", [i, j, var("v")])))
 
-    # 2. Every cell has at most one value
     for i in indices:
         for j in indices:
             v1, v2 = var("v1"), var("v2")
@@ -220,7 +200,6 @@ def build_fol_kb(n: int, given_facts: List[tuple], less_h: List[tuple], greater_
                 Implies(And(Predicate("Val", [i, j, v1]), Predicate("Val", [i, j, v2])),
                         Predicate("Equal", [v1, v2])))))
 
-    # 3. Row uniqueness
     for i in indices:
         for v in values:
             j1, j2 = var("j1"), var("j2")
@@ -228,7 +207,6 @@ def build_fol_kb(n: int, given_facts: List[tuple], less_h: List[tuple], greater_
                 Implies(And(Predicate("Val", [i, j1, v]), Predicate("Val", [i, j2, v])),
                         Predicate("Equal", [j1, j2])))))
 
-    # 4. Column uniqueness
     for j in indices:
         for v in values:
             i1, i2 = var("i1"), var("i2")
@@ -236,14 +214,12 @@ def build_fol_kb(n: int, given_facts: List[tuple], less_h: List[tuple], greater_
                 Implies(And(Predicate("Val", [i1, j, v]), Predicate("Val", [i2, j, v])),
                         Predicate("Equal", [i1, i2])))))
 
-    # 5. Given clues
     for (i, j, v) in given_facts:
         given_pred = Predicate("Given", [t(str(i)), t(str(j)), t(str(v))])
         val_pred = Predicate("Val", [t(str(i)), t(str(j)), t(str(v))])
         kb.append(given_pred)
         kb.append(Implies(given_pred, val_pred))
 
-    # 6. Horizontal inequalities
     for (i, j) in less_h:
         i_term, j_term = t(str(i)), t(str(j))
         j_next = t(str(j+1))
@@ -268,7 +244,6 @@ def build_fol_kb(n: int, given_facts: List[tuple], less_h: List[tuple], greater_
         kb.append(axiom)
         kb.append(Predicate("GreaterH", [i_term, j_term]))
 
-    # 7. Vertical inequalities
     for (i, j) in less_v:
         i_term, j_term = t(str(i)), t(str(j))
         i_next = t(str(i+1))
@@ -293,11 +268,9 @@ def build_fol_kb(n: int, given_facts: List[tuple], less_h: List[tuple], greater_
         kb.append(axiom)
         kb.append(Predicate("GreaterV", [i_term, j_term]))
 
-    # (Transitivity and irreflexivity of Less are omitted – they are evaluated during grounding)
     return kb
 
 def simplify_builtins(expr: Expr) -> Expr:
-    """Replace ground Equal/Less predicates with TruthValue."""
     if isinstance(expr, Predicate) and expr.name in ("Equal", "Less"):
         if all(not arg.is_var for arg in expr.args):
             if expr.name == "Equal":
@@ -315,7 +288,6 @@ def simplify_builtins(expr: Expr) -> Expr:
     return expr
 
 def collect_clauses(expr: Expr, var_map: Dict[Predicate, int]) -> List[List[int]]:
-    """Recursively extract clauses from a CNF expression, return list of lists for SAT solver."""
     if isinstance(expr, And):
         clauses = []
         for sub in [expr.left, expr.right]:
@@ -330,7 +302,7 @@ def collect_clauses(expr: Expr, var_map: Dict[Predicate, int]) -> List[List[int]
             elif isinstance(e, Not):
                 if isinstance(e.expr, TruthValue):
                     if not e.expr.value:
-                        literals.add(None)   # Not(False) = True -> marker
+                        literals.add(None)   
                     return
                 if not isinstance(e.expr, Predicate):
                     raise ValueError("Expected predicate under Not")
@@ -344,16 +316,15 @@ def collect_clauses(expr: Expr, var_map: Dict[Predicate, int]) -> List[List[int]
                 literals.add(var_map[e])
             elif isinstance(e, TruthValue):
                 if e.value:
-                    literals.add(None)   # True literal makes clause always true
-                # False literal contributes nothing
+                    literals.add(None)   
             else:
                 raise ValueError(f"Unexpected literal type: {type(e)}")
         gather_lits(expr)
         if None in literals:
-            return []      # clause always satisfied, skip
+            return []     
         literals.discard(None)
         if not literals:
-            return [[]]    # empty clause -> unsatisfiable
+            return [[]]    
         return [list(literals)]
     elif isinstance(expr, Predicate):
         if expr not in var_map:
@@ -362,9 +333,9 @@ def collect_clauses(expr: Expr, var_map: Dict[Predicate, int]) -> List[List[int]
     elif isinstance(expr, Not):
         if isinstance(expr.expr, TruthValue):
             if not expr.expr.value:
-                return []   # Not(False) = True -> empty clause? Actually True means no constraint
+                return []   
             else:
-                return [[]]     # Not(True) = False -> unsat? But this should not appear as a unit.
+                return [[]]    
         if not isinstance(expr.expr, Predicate):
             raise ValueError("Expected predicate under Not")
         pred = expr.expr
@@ -373,7 +344,7 @@ def collect_clauses(expr: Expr, var_map: Dict[Predicate, int]) -> List[List[int]
         return [[-var_map[pred]]]
     elif isinstance(expr, TruthValue):
         if not expr.value:
-            return [[]]   # False -> empty clause
-        return []         # True -> no clauses
+            return [[]]   
+        return []         
     else:
         raise ValueError(f"Unexpected CNF node: {type(expr)}")

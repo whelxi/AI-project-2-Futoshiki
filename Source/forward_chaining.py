@@ -6,8 +6,6 @@ import csv
 import sys
 from collections import deque
 import game as out_module
-
-# Import toàn bộ cấu trúc và engine Unification từ kb.py
 from kb import Term, Predicate, Rule, is_variable, unify, unify_var
 
 sys.setrecursionlimit(5000)
@@ -16,8 +14,8 @@ class FutoshikiFOLAgent:
     def __init__(self, game):
         self.game = game
         self.N = game.n
-        self.rules = []          # Chứa các Horn clauses FOL
-        self.static_facts = []   # Chứa các Facts cứng (tọa độ, toán học)
+        self.rules = []          
+        self.static_facts = []   
 
     def T(self, name, is_var=False):
         return Term(str(name), is_var)
@@ -31,73 +29,58 @@ class FutoshikiFOLAgent:
         R, C, V, V1, V2 = [self.T(n, True) for n in ["R", "C", "V", "V1", "V2"]]
         R1, C1, R2, C2 = [self.T(n, True) for n in ["R1", "C1", "R2", "C2"]]
 
-        # --- TẠO STATIC FACTS (Tri thức tĩnh) ---
-        # 1. DiffCoord cho Tọa độ (0 -> N-1)
         for a in range(N):
             for b in range(N):
                 if a != b:
                     self.static_facts.append(self.P("DiffCoord", [self.T(a), self.T(b)]))
         
-        # 1.5 DiffVal cho Giá trị (1 -> N)
         for a in range(1, N + 1):
             for b in range(1, N + 1):
                 if a != b:
                     self.static_facts.append(self.P("DiffVal", [self.T(a), self.T(b)]))
         
-        # 2. Tri thức về Toán học (Bất đẳng thức)
         for a in range(1, N + 1):
             for b in range(1, N + 1):
                 if a <= b: self.static_facts.append(self.P("LessThanEq", [self.T(a), self.T(b)]))
                 if a >= b: self.static_facts.append(self.P("GreaterThanEq", [self.T(a), self.T(b)]))
 
-        # 3. Ràng buộc Tọa độ (từ Input Game)
         for r in range(N):
             for c in range(N):
-                # Horizontal
                 if c < N - 1 and self.game.horizontal[r][c] != 0:
                     if self.game.horizontal[r][c] == 1:   # (r,c) < (r,c+1)
                         self.static_facts.append(self.P("LessThanCell", [self.T(r), self.T(c), self.T(r), self.T(c+1)]))
                     elif self.game.horizontal[r][c] == 2: # (r,c) > (r,c+1)
                         self.static_facts.append(self.P("LessThanCell", [self.T(r), self.T(c+1), self.T(r), self.T(c)]))
-                # Vertical
                 if r < N - 1 and self.game.vertical[r][c] != 0:
                     if self.game.vertical[r][c] == 1:   # (r,c) < (r+1,c)
                         self.static_facts.append(self.P("LessThanCell", [self.T(r), self.T(c), self.T(r+1), self.T(c)]))
                     elif self.game.vertical[r][c] == 2: # (r+1,c) < (r,c)
                         self.static_facts.append(self.P("LessThanCell", [self.T(r+1), self.T(c), self.T(r), self.T(c)]))
 
-        # --- TẠO CÁC LUẬT FOL (FOL RULES) ---
-        # Rule 1: Ô (R, C) đang là V1, mà V2 khác V1 (DiffVal) => Không thể là V2
         self.rules.append(Rule(self.P("NotVal", [R, C, V2]),
                                [self.P("Val", [R, C, V1]), self.P("DiffVal", [V1, V2])]))
 
-        # Rule 2: Cùng hàng / cột (DiffCoord) không được trùng giá trị
         self.rules.append(Rule(self.P("NotVal", [R2, C, V]),
                                [self.P("Val", [R1, C, V]), self.P("DiffCoord", [R1, R2])]))
         self.rules.append(Rule(self.P("NotVal", [R, C2, V]),
                                [self.P("Val", [R, C1, V]), self.P("DiffCoord", [C1, C2])]))
 
-        # Rule 3: Ràng buộc lớn bé
-        # Nếu ô1 < ô2, mà ô1 là V1, thì ô2 không thể chứa V2 sao cho V2 <= V1
         self.rules.append(Rule(self.P("NotVal", [R2, C2, V2]),
                                [self.P("LessThanCell", [R1, C1, R2, C2]),
                                 self.P("Val", [R1, C1, V1]),
                                 self.P("LessThanEq", [V2, V1])]))
         
-        # Nếu ô1 < ô2, mà ô2 là V2, thì ô1 không thể chứa V1 sao cho V1 >= V2
         self.rules.append(Rule(self.P("NotVal", [R1, C1, V1]),
                                [self.P("LessThanCell", [R1, C1, R2, C2]),
                                 self.P("Val", [R2, C2, V2]),
                                 self.P("GreaterThanEq", [V1, V2])]))
 
     def match_premises(self, premises, known_facts, theta):
-        """Đệ quy match một chuỗi các premises với tri thức đã biết (thông qua Unification)"""
         if not premises:
             yield theta
             return
         
         first = premises[0]
-        # Chỉ quét các Predicates cùng tên để tối ưu hóa
         candidates = known_facts.get(first.name, [])
         for fact in candidates:
             new_theta = unify(first, fact, theta.copy())
@@ -105,7 +88,6 @@ class FutoshikiFOLAgent:
                 yield from self.match_premises(premises[1:], known_facts, new_theta)
 
     def run_forward_chaining(self, agenda_list, inferred_set, known_facts):
-        """Lan truyền (Propagate) các facts mới qua Unification để rút ra hệ quả"""
         agenda = deque(agenda_list)
         queued_set = set(str(f) for f in agenda_list)
 
@@ -122,7 +104,6 @@ class FutoshikiFOLAgent:
                 known_facts[fact.name] = []
             known_facts[fact.name].append(fact)
 
-            # --- Detect Contradictions (Phát hiện mâu thuẫn trực tiếp) ---
             if fact.name == "Val":
                 opp = self.P("NotVal", fact.args)
                 if str(opp) in inferred_set: return False
@@ -130,13 +111,10 @@ class FutoshikiFOLAgent:
                 opp = self.P("Val", fact.args)
                 if str(opp) in inferred_set: return False
 
-            # --- KIỂM TRA PROCEDURAL DOMAIN COMPLETION ---
-            # Xử lý nhanh gọn thay cho Rule 4 cồng kềnh
             if fact.name == "NotVal":
                 r_name = fact.args[0].name
                 c_name = fact.args[1].name
                 
-                # Đếm xem ô này đã bị loại trừ bao nhiêu giá trị
                 not_vals = [f for f in known_facts.get("NotVal", []) 
                             if f.args[0].name == r_name and f.args[1].name == c_name]
                 
@@ -151,19 +129,15 @@ class FutoshikiFOLAgent:
                                 agenda.append(new_val_fact)
                             break
 
-            # --- Kích hoạt các luật FOL ---
             for rule in self.rules:
                 for i, p in enumerate(rule.body):
-                    # Chỉ trigger luật nếu fact mới map với 1 premise trong luật
                     if p.name != fact.name:
                         continue
                     
                     theta = unify(p, fact, {})
                     if theta is not None:
-                        # Match toàn bộ các premises còn lại trong luật
                         other_premises = rule.body[:i] + rule.body[i+1:]
                         for final_theta in self.match_premises(other_premises, known_facts, theta):
-                            # Substitute biến đã bind vào Head của luật để ra Fact mới
                             head_inst = rule.head.substitute(final_theta)
                             head_str = str(head_inst)
                             
@@ -173,11 +147,9 @@ class FutoshikiFOLAgent:
         return True
 
     def backtrack(self, inferred_set, known_facts):
-        """Tìm kiếm có nhớ thông tin tri thức đã Forward Chain"""
         N = self.N
         is_solved = True
         
-        # Cập nhật Grid và Check hoàn thành
         for r in range(N):
             for c in range(N):
                 assigned = False
@@ -191,7 +163,6 @@ class FutoshikiFOLAgent:
                     
         if is_solved: return True
 
-        # Heuristics tìm ô trống ít lựa chọn nhất
         best_cell = None
         min_domain = N + 1
         best_domain = []
@@ -219,13 +190,8 @@ class FutoshikiFOLAgent:
         r, c = best_cell
         for v in best_domain:
             new_inferred = inferred_set.copy()
-            # Deep copy tri thức
             new_known_facts = {k: v_list.copy() for k, v_list in known_facts.items()}
-            
-            # Thêm giả thiết (Hypothesis) vào hàng chờ
             agenda = [self.P("Val", [self.T(r), self.T(c), self.T(v)])]
-            
-            # Tiếp tục suy diễn logic dựa trên giả thiết
             if self.run_forward_chaining(agenda, new_inferred, new_known_facts):
                 if self.backtrack(new_inferred, new_known_facts):
                     return True
@@ -238,14 +204,12 @@ class FutoshikiFOLAgent:
         inferred_set = set()
         known_facts = {}
         
-        # Load Static Facts vào hệ thống
         for fact in self.static_facts:
             if fact.name not in known_facts:
                 known_facts[fact.name] = []
             known_facts[fact.name].append(fact)
             inferred_set.add(str(fact))
 
-        # Setup Agenda từ Game Board hiện tại
         agenda = []
         for r in range(self.N):
             for c in range(self.N):
@@ -253,7 +217,6 @@ class FutoshikiFOLAgent:
                 if val != 0:
                     agenda.append(self.P("Val", [self.T(r), self.T(c), self.T(val)]))
 
-        # Bắt đầu vòng lặp suy diễn chính
         if not self.run_forward_chaining(agenda, inferred_set, known_facts):
             return False
             

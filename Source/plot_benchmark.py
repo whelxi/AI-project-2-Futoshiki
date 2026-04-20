@@ -9,19 +9,14 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
         print(f"File '{csv_filename}' not found. Please run the benchmark script first to generate data.")
         return
 
-    # Read data from CSV
     df = pd.read_csv(csv_filename)
 
-    # DESIGN TOUCHPOINT 1: Clean X-axis data
-    # Simplify 'input-01.txt' to '1', '2'... for a cleaner X-axis
     if 'File Name' in df.columns:
         df['Test Case'] = df['File Name'].str.replace('input-', '', regex=False).str.replace('.txt', '', regex=False)
     else:
-        df['Test Case'] = df.index.astype(str) # Backup if File Name column is missing
+        df['Test Case'] = df.index.astype(str) 
 
-    # Set modern, minimalist design style
     sns.set_theme(style="whitegrid", font_scale=1.1)
-    # Further customization: Remove top and right spines
     plt.rcParams['axes.spines.top'] = False
     plt.rcParams['axes.spines.right'] = False
     
@@ -29,19 +24,13 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     os.makedirs(output_dir, exist_ok=True)
 
     print("Generating Designer-standard charts...")
-
-    # =========================================================
-    # 1. Bar Chart: Average Running Time
-    # =========================================================
     plt.figure(figsize=(10, 6))
     
-    # Calculate average time
     avg_time = df.groupby('Algorithm')['Time (seconds)'].mean().reset_index()
     avg_time = avg_time.sort_values(by='Time (seconds)') # Sort fastest to slowest
     
     ax1 = sns.barplot(data=avg_time, x='Algorithm', y='Time (seconds)', palette='crest')
     
-    # DESIGN TOUCHPOINT 2: Direct Data Labels
     for container in ax1.containers:
         ax1.bar_label(container, fmt='%.3f s', padding=5, fontsize=11, color='#333333')
 
@@ -52,9 +41,6 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     plt.savefig(os.path.join(output_dir, 'Average_Time_Chart.png'), dpi=300, bbox_inches='tight')
     plt.close()
 
-    # =========================================================
-    # 2. Bar Chart: Average Peak Memory
-    # =========================================================
     plt.figure(figsize=(10, 6))
     
     avg_mem = df.groupby('Algorithm')['Memory Peak (MB)'].mean().reset_index()
@@ -72,34 +58,23 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     plt.savefig(os.path.join(output_dir, 'Average_Memory_Chart.png'), dpi=300, bbox_inches='tight')
     plt.close()
 
-    # =========================================================
-    # 3. Line Chart: Time Variation (Log Scale + 5m Timeout Note)
-    # =========================================================
     plt.figure(figsize=(12, 6))
     
-    # Use distinct palette
     ax3 = sns.lineplot(data=df, x='Test Case', y='Time (seconds)', hue='Algorithm', 
                        marker='o', markersize=8, linewidth=2.5, palette='tab10')
     
-    # --- LOG SCALE IMPLEMENTATION ---
     ax3.set_yscale('log')
     
-    # --- TURN OFF GRID ---
     ax3.grid(False)
 
-    # --- EXTERNAL LEGEND ---
     plt.legend(title='Algorithm', bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False)
     
     x_categories = list(df['Test Case'].unique())
 
-    # --- HIGHLIGHT TIMEOUT (>= 5 MINUTES) ---
-    # Find all test cases that took 300 seconds or more
     timeouts = df[df['Time (seconds)'] >= 300]
     for _, row in timeouts.iterrows():
         try:
-            # Map the test case string to its index on the X-axis for plotting
             x_idx = x_categories.index(row['Test Case'])
-            # Add a red 'X' marker and bold text annotation
             plt.scatter(x_idx, row['Time (seconds)'], color='red', marker='X', s=120, zorder=5)
             plt.annotate('TIMEOUT\n(5m+)', 
                          xy=(x_idx, row['Time (seconds)']),
@@ -116,15 +91,11 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
     plt.savefig(os.path.join(output_dir, 'Time_Per_Testcase_Chart.png'), dpi=300, bbox_inches='tight')
     plt.close()
     
-    # =========================================================
-    # 4. Stacked Bar Chart: Success Rate
-    # =========================================================
     plt.figure(figsize=(10, 6))
     
     if 'Status' in df.columns:
         status_counts = df.groupby(['Algorithm', 'Status']).size().unstack(fill_value=0)
         
-        # DESIGN TOUCHPOINT 4: Meaningful color mapping
         color_map = []
         for col in status_counts.columns:
             if str(col).lower() in ['success', 'passed', 'ok']:
@@ -150,9 +121,6 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
         plt.savefig(os.path.join(output_dir, 'Success_Rate_Chart.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-    # =========================================================
-    # 5. Bar Chart: Average Avg Memory
-    # =========================================================
     plt.figure(figsize=(10, 6))
     
     if 'Memory Avg (MB)' in df.columns:
@@ -171,7 +139,7 @@ def plot_benchmark_results(csv_filename='Benchmark_Results.csv'):
         plt.savefig(os.path.join(output_dir, 'Average_Avg_Memory_Chart.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-    print(f"✨ Done! 'Designer-standard' charts have been saved to '{output_dir}/'")
+    print(f"Done! charts have been saved to '{output_dir}/'")
 
 if __name__ == '__main__':
     plot_benchmark_results()

@@ -3,21 +3,16 @@ import time
 import copy
 import heapq
 
-# Import from existing modules
 from game import GameInstance
 from a_star import AStarNode, get_successors_mrv
 from sat_optimized import solve_futoshiki_optimized
-
-# Import from newly uploaded algorithm files
 import backtracking as bt
 import bruteforce as bf
 from hybrid_inference import FutoshikiFOLAgent
 
-# --- UI CONFIGURATION ---
 st.set_page_config(page_title="Futoshiki Solver Visualizer", layout="wide")
 st.title("Futoshiki Algorithm Visualizer")
 
-# --- HTML/CSS GRID RENDERING FUNCTION ---
 def render_grid_html(game: GameInstance, current_grid=None):
     if current_grid is None:
         current_grid = game.grid
@@ -50,7 +45,6 @@ def render_grid_html(game: GameInstance, current_grid=None):
     html += "</div>"
     return html
 
-# --- READ INPUT FROM UPLOADED FILE ---
 def parse_uploaded_file(uploaded_file):
     content = uploaded_file.getvalue().decode("utf-8")
     lines = content.strip().split('\n')
@@ -73,7 +67,6 @@ def parse_uploaded_file(uploaded_file):
         d += 1
     return GameInstance(n, grid, horizontal, vertical)
 
-# --- GENERATORS FOR ANIMATION ---
 def solve_astar_generator(game):
     start_node = AStarNode(game.grid, 0, game)
     open_list = [start_node]
@@ -162,7 +155,6 @@ def solve_bruteforce_generator(game):
         
     yield from brute_force(0)
 
-# --- MAIN UI ---
 with st.sidebar:
     st.header("Algorithm Settings")
     uploaded_file = st.file_uploader("Upload input file (.txt)", type=["txt"])
@@ -194,7 +186,6 @@ if uploaded_file is not None:
         metrics_placeholder = st.empty()
 
     if run_button:
-        # Nhóm các thuật toán duyệt có thể render từng bước
         animated_algos = ["A* Search", "Backtracking", "Brute Force", "Hybrid Inference"]
         
         if algo_choice in animated_algos:
@@ -218,7 +209,6 @@ if uploaded_file is not None:
                 board_placeholder.markdown(render_grid_html(game_instance, current_grid), unsafe_allow_html=True)
                 metrics_placeholder.metric(metrics_label, metric_val)
                 
-                # Giảm delay cho Chaining vì thuật toán này nhảy bước logic khá nhiều
                 delay = animation_speed if algo_choice != "Hybrid Inference" else animation_speed / 2
                 time.sleep(delay) 
                 
@@ -228,7 +218,6 @@ if uploaded_file is not None:
             else:
                 status_text.error("No solution found or contradiction detected.")
 
-        # Xử lý riêng cho SAT (Mô phỏng quá trình qua UI)
         elif algo_choice == "SAT":
             with open("temp_input.txt", "wb") as f:
                 f.write(uploaded_file.getvalue())
@@ -238,7 +227,6 @@ if uploaded_file is not None:
                 n = game_instance.n
                 log_placeholder = metrics_placeholder.empty()
                 
-                # Hàm hỗ trợ hiển thị log các phép tính SAT
                 def show_sat_math(phase, math_example, delay=0.8):
                     status_text.info(phase)
                     log_placeholder.markdown(f"""
@@ -250,7 +238,6 @@ if uploaded_file is not None:
                     """, unsafe_allow_html=True)
                     time.sleep(delay)
 
-                # --- Visualizing the SAT Math/Encoding Phase ---
                 show_sat_math("Phase 1: Variable Mapping",
                          f"var = r*{n*n} + c*{n} + v\nEx: cell (0,0) assigns 1 will be variable X_{0*n*n + 0*n + 1}",
                          animation_speed * 10)
@@ -275,7 +262,6 @@ if uploaded_file is not None:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Thực thi SAT Solver
                 stats = solve_futoshiki_optimized("temp_input.txt", "temp_output.txt")
                 
                 show_sat_math("Phase 6: Decoding CNF Model",
@@ -296,7 +282,6 @@ if uploaded_file is not None:
                 runtime = time.time() - start_time
                 status_text.success(f"SAT Completed in {runtime:.4f}s")
                 
-                # Xóa log và hiển thị Metrics cuối cùng
                 log_placeholder.empty()
                 col_m1, col_m2 = metrics_placeholder.columns(2)
                 col_m1.metric("CNF Clauses", stats["clauses"])

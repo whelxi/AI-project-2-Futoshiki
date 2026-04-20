@@ -6,16 +6,12 @@ import csv
 import multiprocessing
 import threading
 
-# Import các module đọc/ghi dữ liệu
 import game as game_module
 
-# Import các thuật toán cũ
 from a_star import solve_futoshiki_astar
 from backtracking import solve_futoshiki as solve_backtracking
 from hybrid_inference import FutoshikiFOLAgent
 from sat_optimized import solve_futoshiki_optimized
-
-# Import 2 thuật toán mới 
 from backward_chaining import FutoshikiFOLAgent as BackwardAgent
 from forward_chaining import FutoshikiFOLAgent as ForwardAgent
 
@@ -66,23 +62,17 @@ def run_forward_chaining(in_path, out_path):
     return False
 
 def memory_monitor(return_dict, stop_event):
-    """
-    Luồng chạy ngầm liên tục lấy mẫu RAM.
-    Thu thập các mẫu để tính bộ nhớ trung bình và cập nhật bộ nhớ đỉnh.
-    """
     samples = []
     while not stop_event.is_set():
-        time.sleep(0.1) # Lấy mẫu mỗi 0.1 giây để độ phân giải tốt hơn
+        time.sleep(0.1) 
         if tracemalloc.is_tracing():
             current_mem, peak_mem = tracemalloc.get_traced_memory()
             samples.append(current_mem / (1024 * 1024))
             return_dict['peak_mem'] = peak_mem / (1024 * 1024)
             
-    # Tính trung bình dung lượng RAM đã sử dụng trong suốt quá trình chạy
     if samples:
         return_dict['avg_mem'] = sum(samples) / len(samples)
     else:
-        # Nếu thuật toán chạy quá nhanh (chưa tới 0.1s), lấy luôn peak làm average
         return_dict['avg_mem'] = return_dict.get('peak_mem', 0.0)
 
 def worker_benchmark(algo_func, in_path, out_path, return_dict):
@@ -102,18 +92,15 @@ def worker_benchmark(algo_func, in_path, out_path, return_dict):
         
     end_time = time.perf_counter()
     
-    # Báo luồng RAM dừng và đợi chốt số liệu
     stop_event.set()
     monitor_thread.join(timeout=1.0)
     
-    # Lấy số liệu lần cuối để tránh bỏ sót nếu thread bị gián đoạn
     current_mem, peak_mem = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
     return_dict['status'] = status
     return_dict['run_time'] = end_time - start_time
     
-    # Đảm bảo peak_mem là giá trị lớn nhất ghi nhận được
     final_peak = peak_mem / (1024 * 1024)
     if final_peak > return_dict.get('peak_mem', 0.0):
         return_dict['peak_mem'] = final_peak
@@ -150,7 +137,6 @@ def main():
     manager = multiprocessing.Manager()
 
     with open(csv_filename, mode='w', newline='', encoding='utf-8') as csv_file:
-        # Cập nhật fieldnames có thêm cột Memory Average
         fieldnames = ['File Name', 'Algorithm', 'Time (seconds)', 'Memory Peak (MB)', 'Memory Avg (MB)', 'Status']
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
@@ -183,7 +169,7 @@ def main():
                     status = "Timeout (TLE)"
                     run_time = TIMEOUT_SECONDS
                     peak_mem_mb = return_dict.get('peak_mem', 0.0) 
-                    avg_mem_mb = return_dict.get('avg_mem', peak_mem_mb) # Lấy avg hoặc peak nếu timeout đột ngột
+                    avg_mem_mb = return_dict.get('avg_mem', peak_mem_mb) 
                 else:
                     status = return_dict.get('status', 'Error')
                     run_time = return_dict.get('run_time', 0.0)

@@ -145,25 +145,18 @@ class FutoshikiFOLAgent:
         return True
     
     def solve_generator(self):
-        """
-        Hàm generator dành riêng cho GUI Streamlit để render animation.
-        Yield ra tuple: (current_grid, step_count, is_goal)
-        """
         step_count = [0]
         is_solved = [False]
 
-        # 1. Chạy Forward Chaining ban đầu để suy diễn các ô cơ bản
         self.forward_chaining()
         step_count[0] += 1
         yield self.game.grid, step_count[0], False
         
-        # Kiểm tra xem Forward Chaining ban đầu đã giải quyết xong luôn chưa
         is_complete = all(all(cell != 0 for cell in row) for row in self.game.grid)
         if is_complete:
             yield self.game.grid, step_count[0], True
             return
 
-        # 2. Hàm đệ quy Backward Chaining (được bọc dưới dạng generator để yield)
         def backward_chaining_gen():
             if is_solved[0]: return
 
@@ -175,29 +168,24 @@ class FutoshikiFOLAgent:
 
             r, c = query
             
-            # Lưu lại trạng thái của domains và grid trước khi rẽ nhánh (branching)
             saved_domains = [[set(d) for d in row] for row in self.domains]
             saved_grid = [[self.game.grid[i][j] for j in range(self.n)] for i in range(self.n)]
 
             for val in sorted(list(self.domains[r][c])):
                 if self._is_consistent(r, c, val):
-                    # Tiến hành gán giá trị thử nghiệm
                     self.game.grid[r][c] = val
                     self.domains[r][c] = {val}
                     step_count[0] += 1
                     yield self.game.grid, step_count[0], False
                     
-                    # Sau khi gán, kích hoạt Forward Chaining để xem có bắt được mâu thuẫn/suy diễn thêm không
                     fc_success = self.forward_chaining()
                     step_count[0] += 1
                     yield self.game.grid, step_count[0], False
                     
                     if fc_success:
-                        # Nếu không có mâu thuẫn, đi tiếp sâu hơn
                         yield from backward_chaining_gen()
                         if is_solved[0]: return
                     
-                    # Backtrack (Hoàn tác) nếu phát hiện mâu thuẫn
                     self.domains = [[set(d) for d in row] for row in saved_domains]
                     for i in range(self.n):
                         for j in range(self.n):
@@ -206,7 +194,6 @@ class FutoshikiFOLAgent:
                     step_count[0] += 1
                     yield self.game.grid, step_count[0], False
 
-        # Bắt đầu quá trình đệ quy kết hợp
         yield from backward_chaining_gen()
 
 def main():

@@ -9,9 +9,6 @@ from kb import Term, Predicate, Rule
 
 class SLDProver:
     def __init__(self, facts, rules=None):
-        """
-        Khởi tạo SLD prover với Knowledge Base gồm các Sự thật (Facts) và Luật (Rules).
-        """
         self.facts = facts
         self.rules = rules if rules is not None else []
 
@@ -54,7 +51,6 @@ class SLDProver:
         goal = goals[0]
         rest = goals[1:]
         
-        # 1. SLD Resolution với các Facts (Sự thật)
         for fact in self.facts:
             new_theta = self.unify_preds(goal, fact, theta)
             if new_theta is not None:
@@ -62,12 +58,9 @@ class SLDProver:
                 if result is not None:
                     return result
                     
-        # 2. SLD Resolution với các Rules (Luật)
         for rule in self.rules:
-            # Unify mục tiêu hiện tại với phần Đầu (Head) của luật
             new_theta = self.unify_preds(goal, rule.head, theta)
             if new_theta is not None:
-                # Nếu khớp, thay thế mục tiêu bằng phần Thân (Body) của luật và đẩy vào danh sách chờ
                 new_goals = rule.body + rest
                 result = self.resolve(new_goals, new_theta)
                 if result is not None:
@@ -109,13 +102,11 @@ class FutoshikiFOLAgent:
                 else:
                     vars_dict[(r, c)] = Term(f"V_{r}_{c}", is_var=True)
 
-        # Xây dựng Rules cho Engine và tạo truy vấn Val(i, j, ?)
         for r in range(self.n):
             for c in range(self.n):
                 v = vars_dict[(r, c)]
                 body_conditions = []
                 
-                # Biến chưa biết -> lấy từ Domain
                 if v.is_var:
                     body_conditions.append(Predicate("Domain", [v]))
 
@@ -141,20 +132,15 @@ class FutoshikiFOLAgent:
                     elif ver == -1:  
                         body_conditions.append(Predicate("LessThan", [v, top_v]))
 
-                # Định nghĩa Head của Luật: Val(r, c, v)
                 head = Predicate("Val", [Term(str(r)), Term(str(c)), v])
                 
                 if body_conditions:
-                    # Nếu có ràng buộc, thêm vào KB dưới dạng một Rule
                     prover.rules.append(Rule(head, body_conditions))
                 else:
-                    # Nếu là ô đã có giá trị cố định sẵn và không dính ràng buộc trước đó (ví dụ ô 0,0)
                     prover.facts.append(head)
 
-                # Truy vấn chuẩn đề bài: Query Val(i, j, ?)
                 goals.append(Predicate("Val", [Term(str(r)), Term(str(c)), v]))
 
-        # Thực thi SLD Resolution (Conjunction của toàn bộ truy vấn Val trên lưới)
         solution_theta = prover.resolve(goals, {})
 
         if solution_theta is not None:
