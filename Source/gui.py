@@ -12,7 +12,7 @@ from sat_optimized import solve_futoshiki_optimized
 # Import from newly uploaded algorithm files
 import backtracking as bt
 import bruteforce as bf
-from forward_backward_chaining import Agent
+from hybrid_inference import FutoshikiFOLAgent
 
 # --- UI CONFIGURATION ---
 st.set_page_config(page_title="Futoshiki Solver Visualizer", layout="wide")
@@ -168,13 +168,12 @@ with st.sidebar:
     st.header("Algorithm Settings")
     uploaded_file = st.file_uploader("Upload input file (.txt)", type=["txt"])
     
-    # Đã cập nhật lại tên các thuật toán cho đúng chuẩn
     algo_choice = st.selectbox("Select Algorithm", [
-        "A* Search", 
-        "Backtracking",
-        "Brute Force",
-        "Forward and Backward Chaining", 
-        "SAT"
+    "A* Search", 
+    "Backtracking",
+    "Brute Force",
+    "Hybrid Inference", 
+    "SAT"
     ])
     
     animation_speed = st.slider("Animation Speed", 0.01, 0.5, 0.1)
@@ -197,7 +196,7 @@ if uploaded_file is not None:
 
     if run_button:
         # Nhóm các thuật toán duyệt có thể render từng bước
-        animated_algos = ["A* Search", "Backtracking", "Brute Force", "Forward and Backward Chaining"]
+        animated_algos = ["A* Search", "Backtracking", "Brute Force", "Hybrid Inference"]
         
         if algo_choice in animated_algos:
             status_text.info(f"Searching using {algo_choice}...")
@@ -211,17 +210,17 @@ if uploaded_file is not None:
                 generator = solve_backtracking_generator(game_instance)
             elif algo_choice == "Brute Force":
                 generator = solve_bruteforce_generator(game_instance)
-            elif algo_choice == "Forward and Backward Chaining":
-                agent = Agent(game_instance)
-                generator = agent.solve_generator()
-                metrics_label = "Facts Deduced" # Chaining đo bằng lượng facts sinh ra
+            elif algo_choice == "Hybrid Inference":
+                agent = FutoshikiFOLAgent(game_instance)
+                generator = agent.solve_generator() 
+                metrics_label = "Facts Deduced"
             
             for current_grid, metric_val, is_goal in generator:
                 board_placeholder.markdown(render_grid_html(game_instance, current_grid), unsafe_allow_html=True)
                 metrics_placeholder.metric(metrics_label, metric_val)
                 
                 # Giảm delay cho Chaining vì thuật toán này nhảy bước logic khá nhiều
-                delay = animation_speed if algo_choice != "Forward and Backward Chaining" else animation_speed / 2
+                delay = animation_speed if algo_choice != "Hybrid Inference" else animation_speed / 2
                 time.sleep(delay) 
                 
                 if is_goal:

@@ -12,7 +12,7 @@ import game as game_module
 # Import các thuật toán
 from a_star import solve_futoshiki_astar
 from backtracking import solve_futoshiki as solve_backtracking
-from forward_backward_chaining import Agent as FBAgent
+from hybrid_inference import FutoshikiFOLAgent
 from sat_optimized import solve_futoshiki_optimized
 
 def run_astar(in_path, out_path):
@@ -30,9 +30,9 @@ def run_backtracking(in_path, out_path):
         return True
     return False
 
-def run_fbc(in_path, out_path):
+def run_hybrid(in_path, out_path):
     game = game_module.read_input(in_path)
-    agent = FBAgent(game)
+    agent = FutoshikiFOLAgent(game)
     if agent.solve():
         game_module.print_output(out_path, agent.game)
         return True
@@ -102,11 +102,11 @@ def main():
         return
 
     algorithms = {
-        "A-Star": run_astar,
-        "Backtracking": run_backtracking,
-        "Forward-Backward Chaining": run_fbc,
-        "SAT Optimized": run_sat
-    }
+    "A-Star": run_astar,
+    "Backtracking": run_backtracking,
+    "Hybrid Inference": run_hybrid,
+    "SAT Optimized": run_sat
+    }   
 
     print("BẮT ĐẦU CHẠY BENCHMARK...")
     print(f"Giới hạn thời gian: {TIMEOUT_SECONDS} giây")

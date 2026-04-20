@@ -12,29 +12,12 @@ import numpy as np
 import game as game_module
 
 # Import các thuật toán
-from a_star import solve_futoshiki_astar
-from backtracking import solve_futoshiki as solve_backtracking
-from forward_backward_chaining import Agent as FBAgent
+from hybrid_inference import FutoshikiFOLAgent
 from sat_optimized import solve_futoshiki_optimized
 
-def run_astar(in_path, out_path):
+def run_hybrid(in_path, out_path):
     game = game_module.read_input(in_path)
-    result = solve_futoshiki_astar(game)
-    if result:
-        game_module.print_output(out_path, result)
-        return True
-    return False
-
-def run_backtracking(in_path, out_path):
-    game = game_module.read_input(in_path)
-    if solve_backtracking(game):
-        game_module.print_output(out_path, game)
-        return True
-    return False
-
-def run_fbc(in_path, out_path):
-    game = game_module.read_input(in_path)
-    agent = FBAgent(game)
+    agent = FutoshikiFOLAgent(game)
     if agent.solve():
         game_module.print_output(out_path, agent.game)
         return True
@@ -88,7 +71,7 @@ def generate_temp_chart(file_labels, plot_data_time):
     """
     print("\nĐang tạo biểu đồ so sánh thời gian chạy...")
     x = np.arange(len(file_labels))  # Vị trí của các nhãn trên trục x
-    width = 0.2  # Độ rộng của mỗi cột
+    width = 0.35  # Tăng độ rộng cột vì giờ chỉ còn 2 thuật toán
     
     fig, ax = plt.subplots(figsize=(12, 7))
     
@@ -100,8 +83,10 @@ def generate_temp_chart(file_labels, plot_data_time):
     # Định dạng biểu đồ
     ax.set_xlabel('Input Files', fontsize=12, fontweight='bold')
     ax.set_ylabel('Execution Time (seconds)', fontsize=12, fontweight='bold')
-    ax.set_title('Algorithm Execution Time Comparison (First 7 Inputs)', fontsize=14, fontweight='bold')
-    ax.set_xticks(x + width * 1.5)
+    ax.set_title('Algorithm Execution Time Comparison (First 10 Inputs)', fontsize=14, fontweight='bold')
+    
+    # Điều chỉnh lại vị trí xticks cho cân đối với 2 cột
+    ax.set_xticks(x + width / 2)
     ax.set_xticklabels(file_labels, rotation=45, ha="right")
     ax.legend(title="Algorithms")
     ax.grid(axis='y', linestyle='--', alpha=0.7)
@@ -123,21 +108,20 @@ def main():
     input_files = glob.glob(os.path.join(input_dir, 'input-*.txt'))
     input_files.sort()
     
-    # CHỈ LẤY 7 FILE ĐẦU TIÊN
-    input_files = input_files[:7]
+    # Lấy 10 file đầu tiên
+    input_files = input_files[:10]
     
     if not input_files:
         print(f"Không tìm thấy file input nào trong thư mục '{input_dir}'.")
         return
 
+    # Chỉ giữ lại Hybrid và SAT
     algorithms = {
-        "A-Star": run_astar,
-        "Backtracking": run_backtracking,
-        "Forward-Backward Chaining": run_fbc,
+        "Hybrid Inference": run_hybrid,
         "SAT Optimized": run_sat
     }
 
-    print("BẮT ĐẦU CHẠY BENCHMARK (TEST 7 FILE)...")
+    print("BẮT ĐẦU CHẠY BENCHMARK (TEST 10 FILE)...")
     print(f"Giới hạn thời gian: {TIMEOUT_SECONDS} giây")
     print("=" * 70)
 
