@@ -2,7 +2,6 @@ import streamlit as st
 import time
 import copy
 import heapq
-from io import StringIO
 
 # Import from existing modules
 from game import GameInstance
@@ -245,30 +244,30 @@ if uploaded_file is not None:
                     log_placeholder.markdown(f"""
                     <div style='background-color: #1E1E1E; padding: 15px; border-radius: 5px; border-left: 4px solid #FFC107;'>
                         <h4 style='margin-top: 0; color: #FFF;'>{phase}</h4>
-                        <span style='color: #AAA;'>Minh họa phép tính (Logic CNF):</span>
+                        <span style='color: #AAA;'>Visualize Logic CNF:</span>
                         <pre style='background-color: #000; color: #4CAF50; padding: 10px; border-radius: 3px; font-size: 14px;'>{math_example}</pre>
                     </div>
                     """, unsafe_allow_html=True)
                     time.sleep(delay)
 
                 # --- Visualizing the SAT Math/Encoding Phase ---
-                show_sat_math("Phase 1: Ánh xạ Biến (Variable Mapping)",
-                         f"Công thức: var = r*{n*n} + c*{n} + v\nVí dụ: Ô (0,0) điền số 1 sẽ là biến X_{0*n*n + 0*n + 1}",
+                show_sat_math("Phase 1: Variable Mapping",
+                         f"var = r*{n*n} + c*{n} + v\nEx: cell (0,0) assigns 1 will be variable X_{0*n*n + 0*n + 1}",
                          animation_speed * 10)
                 
-                show_sat_math("Phase 2: Ràng buộc Ô (Cell Constraints)",
-                         f"Ô (0,0) phải có số: [1, 2, ..., {n}]\nÔ (0,0) chỉ có 1 số: KHÔNG THỂ vừa 1 vừa 2 -> [-1, -2]",
+                show_sat_math("Phase 2: Cell Constraints",
+                         f"Cell (0,0) must have: [1, 2, ..., {n}]\nCell (0,0) only have 1 number: can't be either 1 or 2 -> [-1, -2]",
                          animation_speed * 10)
                 
-                show_sat_math("Phase 3: Ràng buộc Hàng/Cột",
-                         "Hàng 0 không lặp số 1:\n[-1, -5] (Nếu Ô(0,0)=1 thì Ô(0,1) không thể =1)",
+                show_sat_math("Phase 3: Collumns and rows constraints",
+                         "Row 0 can't repeatly have 1:\n[-1, -5] (if (0,0)=1 then (0,1) can't be 1)",
                          animation_speed * 10)
 
-                show_sat_math("Phase 4: Ràng buộc Bất đẳng thức",
-                         "Nếu Trái < Phải, và Trái = 2:\nPhải không thể là 1 hoặc 2: [-X, -Y]",
+                show_sat_math("Phase 4: Inequation constraints",
+                         "If Left < Right, and Left = 2:\nCan't be 1 or 2: [-X, -Y]",
                          animation_speed * 10)
 
-                status_text.warning("Phase 5: PySAT C++ Solver đang chạy (CDCL/DPLL)...")
+                status_text.warning("Phase 5: PySAT C++ Solver is running (CDCL/DPLL)...")
                 log_placeholder.markdown("""
                 <div style='background-color: #4A148C; padding: 15px; border-radius: 5px;'>
                     <h4 style='margin-top: 0; color: #FFF;'>Solving...</h4>
@@ -279,8 +278,8 @@ if uploaded_file is not None:
                 # Thực thi SAT Solver
                 stats = solve_futoshiki_optimized("temp_input.txt", "temp_output.txt")
                 
-                show_sat_math("Phase 6: Giải mã (Decoding CNF Model)",
-                         "Đã tìm thấy Model!\nVí dụ: Literal 5 là TRUE -> Dịch ngược lại: Ô(0,1) = 1\nĐang cập nhật lên bàn cờ...",
+                show_sat_math("Phase 6: Decoding CNF Model",
+                         "Found a Model!\nEx: Literal 5 is TRUE -> back-translate: (0,1) = 1\nUpdating onto the board...",
                          animation_speed * 10)
                 
                 # Cập nhật kết quả cuối
@@ -300,8 +299,8 @@ if uploaded_file is not None:
                 # Xóa log và hiển thị Metrics cuối cùng
                 log_placeholder.empty()
                 col_m1, col_m2 = metrics_placeholder.columns(2)
-                col_m1.metric("CNF Clauses (Số mệnh đề)", stats["clauses"])
-                col_m2.metric("Inferences (Số suy luận)", stats["inferences"])
+                col_m1.metric("CNF Clauses", stats["clauses"])
+                col_m2.metric("Inferences", stats["inferences"])
                 
             except Exception as e:
                 status_text.error(f"Error running SAT: {e}")

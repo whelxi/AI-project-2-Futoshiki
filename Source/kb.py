@@ -242,6 +242,21 @@ class Existential(Quantifier):
 
     def __repr__(self):
         return f"∃{self.var_name} ({self.formula})"
+    
+class Rule:
+    """
+    Đại diện cho một Horn clause trong Prolog: Head :- Body
+    - Head: Là một Predicate (ví dụ: Val(i, j, v))
+    - Body: Danh sách các Predicate điều kiện (AND logic)
+    """
+    def __init__(self, head: Predicate, body: List[Predicate]):
+        self.head = head
+        self.body = body
+
+    def __repr__(self):
+        if not self.body:
+            return f"{self.head}."
+        return f"{self.head} :- {', '.join(map(str, self.body))}."
 
 # ----------------------------------------------------------------------
 # Example usage (corrected)
@@ -269,3 +284,44 @@ if __name__ == "__main__":
     # Convert to CNF
     cnf = grounded.to_cnf()
     print("\nCNF:", cnf)
+
+# ----------------------------------------------------------------------
+# FOL Unification Engine (Added)
+# ----------------------------------------------------------------------
+def is_variable(x):
+    return isinstance(x, Term) and x.is_var
+
+def unify(x, y, theta):
+    """Core First-Order Logic Unification algorithm."""
+    if theta is None:
+        return None
+    if isinstance(x, str) and isinstance(y, str):
+        return theta if x == y else None
+    if is_variable(x):
+        return unify_var(x, y, theta)
+    if is_variable(y):
+        return unify_var(y, x, theta)
+    if isinstance(x, Term) and isinstance(y, Term):
+        return theta if x.name == y.name else None
+    if isinstance(x, Predicate) and isinstance(y, Predicate):
+        if x.name != y.name or len(x.args) != len(y.args):
+            return None
+        return unify(x.args, y.args, theta)
+    if isinstance(x, list) and isinstance(y, list):
+        if len(x) != len(y):
+            return None
+        if len(x) == 0:
+            return theta
+        return unify(x[1:], y[1:], unify(x[0], y[0], theta))
+    if x == y:
+        return theta
+    return None
+
+def unify_var(var, x, theta):
+    if var.name in theta:
+        return unify(theta[var.name], x, theta)
+    if is_variable(x) and x.name in theta:
+        return unify(var, theta[x.name], theta)
+    new_theta = theta.copy()
+    new_theta[var.name] = x
+    return new_theta
