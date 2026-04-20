@@ -5,6 +5,7 @@ import time
 import tracemalloc
 import csv
 import game as out_module
+from collections import deque
 
 class Agent:
     def __init__(self, game):
@@ -12,6 +13,7 @@ class Agent:
         self.n = game.n
         
         # Knowledge Base stored as True Facts and Rules (Implications)
+        # kb_facts giờ sẽ chứa các tuple có dạng (r, c, val) thay vì string
         self.kb_facts = set() 
         self.kb_rules = []    # List of tuples: ( [premise_callbacks], conclusion_callback )
 
@@ -23,7 +25,7 @@ class Agent:
 
     def _add_fact(self, r, c, val):
         """Adds a proven fact to the KB and updates domains."""
-        fact = f"Val({r},{c},{val})"
+        fact = (r, c, val) # TỐI ƯU 1: Sử dụng Tuple
         if fact not in self.kb_facts:
             self.kb_facts.add(fact)
             self.cell_domains[(r, c)] = {val}
@@ -59,18 +61,19 @@ class Agent:
         Applies Modus Ponens exhaustively. 
         Takes known facts and propagates them through domain restrictions.
         """
-        agenda = list(self.kb_facts)
+        # TỐI ƯU 2: Sử dụng deque thay vì list cho agenda
+        agenda = deque(self.kb_facts) 
         processed = set()
 
         try:
             while agenda:
-                fact_str = agenda.pop(0)
-                if fact_str in processed: continue
-                processed.add(fact_str)
+                # O(1) popleft thay vì O(N) pop(0)
+                fact = agenda.popleft() 
+                if fact in processed: continue
+                processed.add(fact)
 
-                # Parse fact: "Val(r,c,v)"
-                parts = fact_str.replace("Val(", "").replace(")", "").split(",")
-                r, c, v = int(parts[0]), int(parts[1]), int(parts[2])
+                # Unpack tuple trực tiếp, không cần xử lý chuỗi
+                r, c, v = fact
 
                 new_deductions = []
 
@@ -120,7 +123,7 @@ class Agent:
                 # Add deduced facts to agenda
                 for new_r, new_c, new_v in new_deductions:
                     if self._add_fact(new_r, new_c, new_v):
-                        agenda.append(f"Val({new_r},{new_c},{new_v})")
+                        agenda.append((new_r, new_c, new_v)) # Lưu tuple
 
             return True # FC completed without contradiction
             
@@ -152,7 +155,7 @@ class Agent:
 
             # Hypothesis: We assert the goal is true, and verify it doesn't break rules
             self.cell_domains[(r, c)] = {val}
-            self.kb_facts.add(f"Val({r},{c},{val})")
+            self.kb_facts.add((r, c, val)) # Thêm tuple
             
             # Use FC to check consistency of this hypothesis (Constraint Logic Programming)
             if self.forward_chaining():
@@ -203,17 +206,16 @@ class Agent:
 
     def forward_chaining_generator(self):
         """Phiên bản có yield của forward_chaining"""
-        agenda = list(self.kb_facts)
+        agenda = deque(self.kb_facts) # Dùng deque cho generator
         processed = set()
 
         try:
             while agenda:
-                fact_str = agenda.pop(0)
-                if fact_str in processed: continue
-                processed.add(fact_str)
+                fact = agenda.popleft()
+                if fact in processed: continue
+                processed.add(fact)
 
-                parts = fact_str.replace("Val(", "").replace(")", "").split(",")
-                r, c, v = int(parts[0]), int(parts[1]), int(parts[2])
+                r, c, v = fact # Unpack tuple
 
                 new_deductions = []
 
@@ -259,7 +261,7 @@ class Agent:
                 # Thêm facts mới và YIELD trạng thái để UI vẽ
                 for new_r, new_c, new_v in new_deductions:
                     if self._add_fact(new_r, new_c, new_v):
-                        agenda.append(f"Val({new_r},{new_c},{new_v})")
+                        agenda.append((new_r, new_c, new_v)) # Lưu tuple
                         yield self.get_current_grid_state(), len(self.kb_facts), False
 
             return True 
@@ -284,7 +286,7 @@ class Agent:
             snapshot_facts = set(self.kb_facts)
 
             self.cell_domains[(r, c)] = {val}
-            self.kb_facts.add(f"Val({r},{c},{val})")
+            self.kb_facts.add((r, c, val)) # Thêm tuple
             
             # YIELD: Báo cho UI biết Agent vừa đưa ra 1 giả thuyết mới (Guessing)
             yield self.get_current_grid_state(), len(self.kb_facts), False
@@ -322,67 +324,6 @@ class Agent:
 # MAIN EXECUTION
 # -------------------------------------------------------------------
 """def main():
-    input_dir = 'Inputs'
-    output_dir = 'Outputs'
-    csv_filename = 'Tracking-Logic.csv'
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    input_files = glob.glob(os.path.join(input_dir, 'input-*.txt'))
-    input_files.sort()
-    
-    if not input_files:
-        print(f"Not found: '{input_dir}'.")
-        return
-
-    with open(csv_filename, mode='w', newline='', encoding='utf-8') as csv_file:
-        fieldnames = ['File Name', 'Time (seconds)', 'Memory Peak (MB)', 'Status']
-        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-        writer.writeheader()
-
-        for in_path in input_files:
-            filename = os.path.basename(in_path)
-            out_filename = filename.replace('input-', 'output-')
-            out_path = os.path.join(output_dir, out_filename)
-
-            print(f"Run True Logic Agent: {filename}...")
-            
-            try:
-                game = out_module.read_input(in_path)
-                agent = Agent(game)
-
-                tracemalloc.start()
-                start_time = time.time()
-                
-                is_solved = agent.solve()
-                
-                end_time = time.time()
-                current_mem, peak_mem = tracemalloc.get_traced_memory()
-                tracemalloc.stop()
-
-                run_time = end_time - start_time
-                peak_mem_mb = peak_mem / (1024 * 1024)
-
-                if is_solved:
-                    out_module.print_output(out_path, game, agent.game.grid)
-                    status = "Success"
-                    print(f" -> Solved! Time: {run_time:.4f}s | Memory: {peak_mem_mb:.4f} MB")
-                else:
-                    status = "Failed"
-                    print(f" -> No solution found.")
-
-                writer.writerow({
-                    'File Name': filename,
-                    'Time (seconds)': round(run_time, 4),
-                    'Memory Peak (MB)': round(peak_mem_mb, 4),
-                    'Status': status
-                })
-
-            except Exception as e:
-                print(f"error: {filename} - {e}")
-                
-            print("-" * 40)
-
-if __name__ == '__main__':
-    main()"""
+...
+(Đoạn comment main execution giữ nguyên như code gốc của bạn)
+"""

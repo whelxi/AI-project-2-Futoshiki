@@ -1,0 +1,29 @@
+File Name,Algorithm,Time (seconds),Memory Peak (MB),Status
+input-01.txt,A-Star,0.0149,0.1442,Success
+input-01.txt,Backtracking,0.0014,0.1406,Success
+input-01.txt,Forward-Backward Chaining,0.0018,0.1471,Success
+input-01.txt,SAT Optimized,0.0119,0.8086,Success
+input-02.txt,A-Star,0.009,0.1456,Success
+input-02.txt,Backtracking,0.0014,0.1406,Success
+input-02.txt,Forward-Backward Chaining,0.0021,0.1483,Success
+input-02.txt,SAT Optimized,0.0112,0.8267,Success
+input-03.txt,A-Star,0.2353,2.1019,Success
+input-03.txt,Backtracking,0.0604,0.1416,Success
+input-03.txt,Forward-Backward Chaining,0.2668,0.1563,Success
+input-03.txt,SAT Optimized,0.0294,1.9363,Success
+input-04.txt,A-Star,0.0268,0.3105,Success
+input-04.txt,Backtracking,0.0198,0.1416,Success
+input-04.txt,Forward-Backward Chaining,0.1551,0.1551,Success
+input-04.txt,SAT Optimized,0.0274,1.8542,Success
+input-05.txt,A-Star,0.0299,0.2913,Success
+input-05.txt,Backtracking,0.1169,0.1446,Success
+input-05.txt,Forward-Backward Chaining,1.0895,0.2289,Success
+input-05.txt,SAT Optimized,0.0597,3.8891,Success
+input-06.txt,A-Star,0.142,1.2632,Success
+input-06.txt,Backtracking,0.0094,0.1427,Success
+input-06.txt,Forward-Backward Chaining,0.0154,0.1608,Success
+input-06.txt,SAT Optimized,0.0571,3.7734,Success
+input-07.txt,A-Star,0.3409,2.622,Success
+input-07.txt,Backtracking,1.3039,0.148,Success
+input-07.txt,Forward-Backward Chaining,2.0406,0.2518,Success
+input-07.txt,SAT Optimized,0.1135,6.8486,Success
